@@ -4,7 +4,9 @@ import { EventPattern, IEventBus, Rule } from 'aws-cdk-lib/aws-events';
  * EventBridge Rules Interfaces
  */
 export type EventBridgeRuleName =
-  // FIXME add in upstream event rules
+  // Upstream Succeeded (Dragen WGTS RNA or Arriba WGTS RNA)
+  | 'upstreamSucceededEventLegacy'
+  | 'upstreamSucceededEvent'
   // Pre-draft
   | 'wrscDraftLegacy'
   | 'wrscDraft'
@@ -15,6 +17,9 @@ export type EventBridgeRuleName =
   | 'icav2WesAnalysisStateChange';
 
 export const eventBridgeRuleNameList: EventBridgeRuleName[] = [
+  // Upstream Succeeded (Dragen WGTS RNA or Arriba WGTS RNA)
+  'upstreamSucceededEventLegacy',
+  'upstreamSucceededEvent',
   // Pre-draft
   'wrscDraftLegacy',
   'wrscDraft',
