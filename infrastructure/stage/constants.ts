@@ -28,6 +28,7 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ICAV2_PIPELINE_ID_MAP: Record<
   WorkflowVersionType,
   string
 > = {
+  // FIXME
   // At the moment we are running manual deployments of the workflow
   '2.0.0': '495a9c45-ac7c-4628-9f25-467afd84c03e',
 };

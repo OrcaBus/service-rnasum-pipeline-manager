@@ -29,7 +29,7 @@ export interface StatelessApplicationStackConfig {
   // Workflow manager stuff
   isNewWorkflowManagerDeployed: boolean;
 
-  // SSM Parameter pathsd
+  // SSM Parameter paths
   ssmParameterPaths: SsmParameterPaths;
 }
 
