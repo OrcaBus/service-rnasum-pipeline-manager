@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "s3Uri": {
+      "type": "string",
+      "pattern": "^s3://[a-zA-Z0-9_-]+/[a-zA-Z0-9_./-]+"
+    },
+    "s3UriDirectory": {
+      "type": "string",
+      "pattern": "^s3://[a-zA-Z0-9_-]+/[a-zA-Z0-9_./-]+/$"
+    },
+    "tags": {
+      "type": "object",
+      "properties": {
+        "tumorRnaLibraryId": {
+          "type": "string",
+          "examples": ["L2401540"]
+        },
+        "tumorDnaLibraryId": {
+          "type": "string",
+          "examples": ["L2401540"]
+        },
+        "normalDnaLibraryId": {
+          "type": "string",
+          "examples": ["L2401540"]
+        },
+        "subjectId": {
+          "type": "string",
+          "examples": ["9689947"]
+        },
+        "individualId": {
+          "type": "string",
+          "examples": ["SBJ05828"]
+        },
+        "projectId": {
+          "type": "string",
+          "examples": ["Control"]
+        },
+        "tumorDnaFastqRgidList": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "examples": ["GGACTTGG+CGTCTGCG.2.241024_A00130_0336_BHW7MVDSXC"]
+          },
+          "examples": [["GGACTTGG+CGTCTGCG.2.241024_A00130_0336_BHW7MVDSXC"]]
+        },
+        "normalDnaFastqRgidList": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "examples": ["GGACTTGG+CGTCTGCG.2.241024_A00130_0336_BHW7MVDSXC"]
+          },
+          "examples": [["GGACTTGG+CGTCTGCG.2.241024_A00130_0336_BHW7MVDSXC"]]
+        },
+        "tumorRnaFastqRgidList": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "examples": ["GGACTTGG+CGTCTGCG.2.241024_A00130_0336_BHW7MVDSXC"]
+          },
+          "examples": [["GGACTTGG+CGTCTGCG.2.241024_A00130_0336_BHW7MVDSXC"]]
+        }
+      },
+      "required": [
+        "tumorRnaLibraryId",
+        "tumorDnaLibraryId",
+        "normalDnaLibraryId",
+        "subjectId",
+        "individualId",
+        "projectId",
+        "tumorDnaFastqRgidList",
+        "normalDnaFastqRgidList",
+        "tumorRnaFastqRgidList"
+      ],
+      "allowAdditionalProperties": true
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "arribaPdf": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "arribaTsv": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "dragenFusions": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "dragenMappingMetrics": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "salmon": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "pcgrTiersTsv": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "purpleGeneTsv": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "svTsv": {
+          "$ref": "#/$defs/s3Uri"
+        },
+        "dataset": {
+          "type": "string"
+        },
+        "reportDir": {
+          "type": "string"
+        },
+        "sampleName": {
+          "type": "string"
+        },
+        "subjectId": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        },
+        "batchRm": {
+          "type": "boolean"
+        },
+        "sampleSource": {
+          "type": "string"
+        },
+        "datasetNameIncl": {
+          "type": "boolean"
+        },
+        "drugs": {
+          "type": "boolean"
+        },
+        "filter": {
+          "type": "boolean"
+        },
+        "immunogram": {
+          "type": "boolean"
+        },
+        "log": {
+          "type": "boolean"
+        },
+        "norm": {
+          "type": "string"
+        },
+        "saveTables": {
+          "type": "boolean"
+        },
+        "scaling": {
+          "type": "string"
+        },
+        "topGenes": {
+          "type": "integer"
+        },
+        "transform": {
+          "type": "string"
+        },
+        "pcgrSpliceVars": {
+          "type": "boolean"
+        },
+        "pcgrTier": {
+          "type": "integer"
+        },
+        "cnLoss": {
+          "type": "integer"
+        },
+        "cnGain": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "arribaPdf",
+        "arribaTsv",
+        "dragenFusions",
+        "dragenMappingMetrics",
+        "salmon",
+        "pcgrTiersTsv",
+        "purpleGeneTsv",
+        "svTsv",
+        "dataset",
+        "reportDir",
+        "sampleName",
+        "subjectId",
+        "project"
+      ]
+    },
+    "engineParameters": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        },
+        "pipelineId": {
+          "type": "string"
+        },
+        "outputUri": {
+          "$ref": "#/$defs/s3UriDirectory"
+        },
+        "logsUri": {
+          "$ref": "#/$defs/s3UriDirectory"
+        }
+      },
+      "required": ["projectId", "pipelineId", "outputUri", "logsUri"],
+      "allowAdditionalProperties": true
+    }
+  },
+  "type": "object",
+  "properties": {
+    "tags": {
+      "$ref": "#/$defs/tags"
+    },
+    "inputs": {
+      "$ref": "#/$defs/inputs"
+    },
+    "engineParameters": {
+      "$ref": "#/$defs/engineParameters"
+    }
+  },
+  "required": ["tags", "inputs", "engineParameters"]
+}
