@@ -28,9 +28,8 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ICAV2_PIPELINE_ID_MAP: Record<
   WorkflowVersionType,
   string
 > = {
-  // FIXME
-  // At the moment we are running manual deployments of the workflow
-  '2.0.0': '495a9c45-ac7c-4628-9f25-467afd84c03e',
+  // https://github.com/umccr/cwl-ica/releases/tag/rnasum-pipeline%2F2.0.0__20251004080109
+  '2.0.0': '6f830242-25d7-41d3-b68b-69b8942cd46a',
 };
 
 export const DEFAULT_WORKFLOW_INPUTS_BY_VERSION_MAP: Record<WorkflowVersionType, object> = {
