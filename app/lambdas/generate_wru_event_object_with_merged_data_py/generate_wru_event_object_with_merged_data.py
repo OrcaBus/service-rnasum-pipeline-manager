@@ -8,6 +8,9 @@ from orcabus_api_tools.workflow import (
     get_workflow_run_from_portal_run_id
 )
 
+# Globals
+DEFAULT_PAYLOAD_VERSION = '2025.09.30'
+
 
 def handler(event, context):
     """
@@ -62,7 +65,8 @@ def handler(event, context):
             libraries
         ))
 
-    # First check if the oncoanalyser draft workflow object has the fields we would update with the
+    if 'data' not in payload or payload['data'] is None:
+        payload['data'] = {}
 
     # Generate a workflow run update object with the merged data
     if (
@@ -89,9 +93,10 @@ def handler(event, context):
         }
 
     # Initialise inputs
-    if payload['data'].get("inputs", {}) is None:
+    if payload['data'].get("inputs", None) is None:
         payload['data']['inputs'] = {}
 
+    # Update the arriba outputs
     if (
             (
                     payload['data'].get("inputs", {}).get("arribaPdf", None) is None and
@@ -105,6 +110,7 @@ def handler(event, context):
         payload['data']['inputs']['arribaPdf'] = arriba_pdf
         payload['data']['inputs']['arribaTsv'] = arriba_tsv
 
+    # Update the dragen rna outputs
     if (
             (
                     payload['data'].get("inputs", {}).get("dragenMappingMetrics", None) is None and
@@ -116,11 +122,12 @@ def handler(event, context):
                 salmon is not None
             )
     ):
-        # Get the arriba outputs to add to the rnasum payload
+        # Get the dragen outputs to add to the rnasum payload
         payload['data']['inputs']['dragenMappingMetrics'] = dragen_mapping_metrics
         payload['data']['inputs']['dragenFusions'] = dragen_fusions
         payload['data']['inputs']['salmon'] = salmon
 
+    # Update the sash outputs
     if (
             (
                 payload['data'].get("inputs", {}).get("pcgrTiersTsv", None) is None and
@@ -144,7 +151,7 @@ def handler(event, context):
 
     # Update the inputs with the dragen draft payload data
     draft_workflow_update["payload"] = {
-        "version": payload['version'],
+        "version": payload.get('version', DEFAULT_PAYLOAD_VERSION),
         "data": new_data_object
     }
 
