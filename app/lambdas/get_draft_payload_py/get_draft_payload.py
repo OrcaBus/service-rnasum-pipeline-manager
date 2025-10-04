@@ -31,10 +31,10 @@ def handler(event, context):
         return {
             "payload": {},
         }
-
-    # Get the genomes.GRCh38Umccr key and change it to genomes.GRCh38_umccr
-    if "GRCh38Umccr" in payload.get("data", {}).get("inputs", {}).get("genomes", {}):
-        payload["data"]["inputs"]["genomes"]["GRCh38_umccr"] = payload["data"]["inputs"]["genomes"].pop("GRCh38Umccr")
+    except TypeError as e:
+        return {
+            "payload": {},
+        }
 
     # Strip orcabusId and the payload ref id from the payload
     if "orcabusId" in payload:
