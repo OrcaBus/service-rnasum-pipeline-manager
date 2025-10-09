@@ -72,7 +72,8 @@
       ],
       "Next": "Did we get an RNASum portal run id",
       "Assign": {
-        "draftPortalRunId": "{% $states.result.Payload.workflowRunObject.portalRunId ? $states.result.Payload.workflowRunObject.portalRunId : null %}"
+        "draftPortalRunId": "{% $states.result.Payload.workflowRunObject.portalRunId ? $states.result.Payload.workflowRunObject.portalRunId : null %}",
+        "libraries": "{% $states.result.Payload.workflowRunObject.libraries ? $states.result.Payload.workflowRunObject.libraries %}"
       }
     },
     "Did we get an RNASum portal run id": {
