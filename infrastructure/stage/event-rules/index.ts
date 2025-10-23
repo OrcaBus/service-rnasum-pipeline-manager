@@ -24,6 +24,7 @@ import {
   WORKFLOW_MANAGER_EVENT_SOURCE,
   WORKFLOW_NAME,
   WORKFLOW_RUN_STATE_CHANGE_DETAIL_TYPE,
+  SASH_WORKFLOW_NAME,
 } from '../constants';
 
 /*
@@ -49,7 +50,11 @@ function buildUpstreamLegacySucceededEventPattern(): EventPattern {
     detailType: [WORKFLOW_RUN_STATE_CHANGE_DETAIL_TYPE],
     source: [WORKFLOW_MANAGER_EVENT_SOURCE],
     detail: {
-      workflowName: [DRAGEN_WGTS_RNA_WORKFLOW_NAME, ARRIBA_WGTS_RNA_WORKFLOW_NAME],
+      workflowName: [
+        DRAGEN_WGTS_RNA_WORKFLOW_NAME,
+        ARRIBA_WGTS_RNA_WORKFLOW_NAME,
+        SASH_WORKFLOW_NAME,
+      ],
       status: [SUCCEEDED_STATUS],
     },
   };
@@ -86,7 +91,7 @@ function buildUpstreamSucceededEventPattern(): EventPattern {
     source: [WORKFLOW_MANAGER_EVENT_SOURCE],
     detail: {
       workflow: {
-        name: [DRAGEN_WGTS_RNA_WORKFLOW_NAME, ARRIBA_WGTS_RNA_WORKFLOW_NAME],
+        name: [DRAGEN_WGTS_RNA_WORKFLOW_NAME, ARRIBA_WGTS_RNA_WORKFLOW_NAME, SASH_WORKFLOW_NAME],
       },
       status: [SUCCEEDED_STATUS],
     },
