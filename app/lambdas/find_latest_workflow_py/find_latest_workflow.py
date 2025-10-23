@@ -84,7 +84,10 @@ def handler(event, context):
     # Get the latest draft workflow for the given workflow name
     return {
         "workflowRunObject": sorted(
-            workflows_list,
+            list(map(
+                lambda workflow_iter_: get_workflow_run(workflow_iter_['orcabusId']),
+                workflows_list
+            )),
             key=lambda workflow_iter_: workflow_iter_['orcabusId'],
             reverse=True
         )[0]
@@ -127,51 +130,6 @@ def handler(event, context):
 #                         ]
 #                     }
 #                 ],
-#                 "status": "SUCCEEDED"
-#             },
-#             None
-#         ),
-#         indent=4
-#     ))
-
-
-# if __name__ == "__main__":
-#     import json
-#     from os import environ
-#     environ['AWS_PROFILE'] = 'umccr-development'
-#     environ['HOSTNAME_SSM_PARAMETER_NAME'] = '/hosted_zone/umccr/name'
-#     environ['ORCABUS_TOKEN_SECRET_ID'] = 'orcabus/token-service-jwt'
-#     print(json.dumps(
-#         handler(
-#             {
-#                 "workflowName": "oncoanalyser-wgts-dna",
-#                 "libraries": [
-#                     {
-#                         "libraryId": "L2300950",
-#                         "orcabusId": "lib.01J9T6AV2XJWBDJ42VAK6RB1XK",
-#                         "readsets": [
-#                             {
-#                                 "orcabusId": "fqr.01JN25MRV2622KBD073XGKVYQP",
-#                                 "rgid": "GGCATTCT+CAAGCTAG.2.230629_A01052_0154_BH7WF5DSX7"
-#                             }
-#                         ]
-#                     },
-#                     {
-#                         "libraryId": "L2300943",
-#                         "orcabusId": "lib.01J9T6ATSB40216793T4DJ7AWD",
-#                         "readsets": [
-#                             {
-#                                 "orcabusId": "fqr.01JN25MKYXVYJD30VZVJCP6407",
-#                                 "rgid": "ACTAAGAT+CCGCGGTT.4.230602_A00130_0258_BH55TMDSX7"
-#                             },
-#                             {
-#                                 "orcabusId": "fqr.01JN25MM0R858AXWJKT5E1W270",
-#                                 "rgid": "ACTAAGAT+CCGCGGTT.3.230602_A00130_0258_BH55TMDSX7"
-#                             }
-#                         ]
-#                     }
-#                 ],
-#                 "analysisRunId": None,
 #                 "status": "SUCCEEDED"
 #             },
 #             None
