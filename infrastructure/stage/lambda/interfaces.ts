@@ -17,6 +17,7 @@ export type LambdaName =
   | 'getMetadataTags'
   | 'getFastqIdListFromRgidList'
   // Validation
+  | 'postSchemaValidation'
   | 'validateDraftDataCompleteSchema'
   // Ready to ICAv2 WES lambdas
   | 'convertReadyEventInputsToIcav2WesEventInputs'
@@ -40,6 +41,7 @@ export const lambdaNameList: LambdaName[] = [
   'getMetadataTags',
   'getFastqIdListFromRgidList',
   // Validation
+  'postSchemaValidation',
   'validateDraftDataCompleteSchema',
   // Ready to ICAv2 WES lambdas
   'convertReadyEventInputsToIcav2WesEventInputs',
@@ -50,8 +52,12 @@ export const lambdaNameList: LambdaName[] = [
 // Requirements interface for Lambda functions
 export interface LambdaRequirements {
   needsOrcabusApiTools?: boolean;
+  needsIcav2Tools?: boolean;
   needsSsmParametersAccess?: boolean;
   needsSchemaRegistryAccess?: boolean;
+  needsWorkflowEnvVars?: boolean;
+  needsBucketEnvVars?: boolean;
+  needsHigherMemory?: boolean;
 }
 
 // Lambda requirements mapping
@@ -93,10 +99,19 @@ export const lambdaRequirementsMap: Record<LambdaName, LambdaRequirements> = {
   getFastqIdListFromRgidList: {
     needsOrcabusApiTools: true,
   },
-  // Validation
+  // Validate Draft Complete schema
+  postSchemaValidation: {
+    needsOrcabusApiTools: true,
+    needsWorkflowEnvVars: true,
+    needsBucketEnvVars: true,
+    needsIcav2Tools: true,
+    needsHigherMemory: true,
+  },
   validateDraftDataCompleteSchema: {
+    needsOrcabusApiTools: true,
     needsSchemaRegistryAccess: true,
     needsSsmParametersAccess: true,
+    needsWorkflowEnvVars: true,
   },
   // Convert ready to ICAv2 WES Event - no requirements
   convertReadyEventInputsToIcav2WesEventInputs: {},
@@ -106,10 +121,16 @@ export const lambdaRequirementsMap: Record<LambdaName, LambdaRequirements> = {
   },
 };
 
-export interface LambdaInput {
+export interface BuildAllLambdasProps {
+  refDataBucketName: string;
+  testDataBucketName: string;
+}
+
+export interface BuildLambdaProps extends BuildAllLambdasProps {
   lambdaName: LambdaName;
 }
 
-export interface LambdaObject extends LambdaInput {
+export interface LambdaObject {
+  lambdaName: LambdaName;
   lambdaFunction: PythonUvFunction;
 }

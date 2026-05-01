@@ -37,12 +37,15 @@ def handler(event, context):
     salmon = upstream_data.get("salmon", None)
     # From sash
     pcgr_tiers_tsv = upstream_data.get("pcgrTiersTsv", None)
-    purple_gene_tsv = upstream_data.get("purpleGeneTsv", None)
+    # Gene tsv key depends on rnasum version we're using
+    if payload.get("version") >= "2026.04.30":
+        gene_tsv_key = "cnGeneTsv"
+    else:
+        gene_tsv_key = "purpleGeneTsv"
+    gene_tsv = upstream_data.get(gene_tsv_key, None)
     sv_tsv = upstream_data.get("svTsv", None)
 
     # Get the upstream data
-
-
     # Create a copy of the oncoanalyser draft workflow run object to update
     draft_workflow_run = get_workflow_run_from_portal_run_id(
         portal_run_id=portal_run_id
@@ -79,7 +82,7 @@ def handler(event, context):
                     payload['data'].get("inputs", {}).get("salmon", None) is not None
             ) and (
                     payload['data'].get("inputs", {}).get("pcgrTiersTsv", None) is not None or
-                    payload['data'].get("inputs", {}).get("purpleGeneTsv", None) is not None or
+                    payload['data'].get("inputs", {}).get(gene_tsv_key, None) is not None or
                     payload['data'].get("inputs", {}).get("svTsv", None) is not None
             )
     ):
@@ -131,17 +134,17 @@ def handler(event, context):
     if (
             (
                 payload['data'].get("inputs", {}).get("pcgrTiersTsv", None) is None and
-                payload['data'].get("inputs", {}).get("purpleGeneTsv", None) is None and
+                payload['data'].get("inputs", {}).get(gene_tsv_key, None) is None and
                 payload['data'].get("inputs", {}).get("svTsv", None) is None
             ) and (
                 pcgr_tiers_tsv is not None and
-                purple_gene_tsv is not None and
+                gene_tsv is not None and
                 sv_tsv is not None
             )
     ):
-        # Get the arriba outputs to add to the rnasum payload
+        # Get the sash outputs to add to the rnasum payload
         payload['data']['inputs']['pcgrTiersTsv'] = pcgr_tiers_tsv
-        payload['data']['inputs']['purpleGeneTsv'] = purple_gene_tsv
+        payload['data']['inputs'][gene_tsv_key] = gene_tsv
         payload['data']['inputs']['svTsv'] = sv_tsv
 
     # Merge the data from the dragen draft payload into the draft payload

@@ -14,7 +14,10 @@ from typing import Dict, List, Union, Any
 INPUT_FILE_KEYS = [
     # Sash
     "svTsv",
+    # purpleGeneTsv renamed to cnGeneTsv
+    # As of version 2.0.3
     "purpleGeneTsv",
+    "cnGeneTsv",
     "pcgrTiersTsv",
     # Dragen
     "salmon",

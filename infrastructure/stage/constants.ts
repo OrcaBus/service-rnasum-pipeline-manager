@@ -1,7 +1,11 @@
-import { WorkflowVersionType } from './interfaces';
+import { PayloadVersionType, WorkflowVersionType } from './interfaces';
 import path from 'path';
 import { DATA_SCHEMA_REGISTRY_NAME } from '@orcabus/platform-cdk-constructs/shared-config/event-bridge';
-import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
+
+import {
+  REFERENCE_DATA_BUCKET,
+  TEST_DATA_BUCKET,
+} from '@orcabus/platform-cdk-constructs/shared-config/s3';
 
 /* App dirs */
 export const APP_ROOT = path.join(__dirname, '../../app');
@@ -11,12 +15,6 @@ export const EVENT_SCHEMAS_DIR = path.join(APP_ROOT, 'event-schemas');
 
 /* Workflow constants */
 export const WORKFLOW_NAME = 'rnasum';
-
-// However, because this workflow has the same workflow name as the
-// existing production workflow, we need to filter on the payload version
-// to prevent the wrong service from being triggered
-export const DEFAULT_WORKFLOW_VERSION: WorkflowVersionType = '2.0.0';
-export const DEFAULT_PAYLOAD_VERSION = '2025.09.30';
 
 // Add prefix placeholders
 export const WORKFLOW_LOGS_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}logs/${WORKFLOW_NAME}/`;
@@ -30,37 +28,50 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ICAV2_PIPELINE_ID_MAP: Record<
 > = {
   // https://github.com/umccr/cwl-ica/releases/tag/rnasum-pipeline/2.0.0__20251007042648
   '2.0.0': 'e999af04-268e-4307-a037-2855ea5aa073',
+  // https://github.com/umccr/cwl-ica/releases/tag/rnasum-pipeline/2.0.3__20260428032313
+  '2.0.3': 'a530f02e-1e15-465c-a032-f9e7f447c04e',
+};
+
+export const WORKFLOW_VERSION_TO_DEFAULT_PAYLOAD_VERSION_MAP: Record<
+  WorkflowVersionType,
+  PayloadVersionType
+> = {
+  '2.0.0': '2025.09.30',
+  '2.0.3': '2026.04.28',
+};
+
+const DEFAULT_INPUTS_V2 = {
+  // Transformation method to be used when converting read counts
+  transform: 'CPM', // Counts Per Million
+  // Normalisation method to be used when normalising read counts
+  norm: 'TMM', // Trimmed Mean of M-values
+  // Scaling
+  scaling: 'gene-wise',
+  // Tier threshold for reporting variants reported in PCGR.
+  pcgrTier: 4,
+  // CN threshold value to classify genes within lost regions.
+  cnLoss: 5,
+  // CN Gain threshold value to classify genes within gained regions.
+  cnGain: 95,
+  // The number of top ranked genes to be presented.
+  topGenes: 5,
+  // Reference dataset selection
+  dataset: 'PANCAN', // Samples from all 33 cancer types, 10 samples from each
+  // Remove batch associated effects
+  batchRm: true,
+  // Filter out low expressed genes
+  filter: true,
+  // Log (base 2) transform data before normalisation
+  log: true,
+  // Save interactive summary tables as HTML
+  saveTables: true,
+  // Include non-coding splice region variants reported in PCGR.
+  pcgrSpliceVars: true,
 };
 
 export const DEFAULT_WORKFLOW_INPUTS_BY_VERSION_MAP: Record<WorkflowVersionType, object> = {
-  '2.0.0': {
-    // Transformation method to be used when converting read counts
-    transform: 'CPM', // Counts Per Million
-    // Normalisation method to be used when normalising read counts
-    norm: 'TMM', // Trimmed Mean of M-values
-    // Scaling
-    scaling: 'gene-wise',
-    // Tier threshold for reporting variants reported in PCGR.
-    pcgrTier: 4,
-    // CN threshold value to classify genes within lost regions.
-    cnLoss: 5,
-    // CN Gain threshold value to classify genes within gained regions.
-    cnGain: 95,
-    // The number of top ranked genes to be presented.
-    topGenes: 5,
-    // Reference dataset selection
-    dataset: 'PANCAN', // Samples from all 33 cancer types, 10 samples from each
-    // Remove batch associated effects
-    batchRm: true,
-    // Filter out low expressed genes
-    filter: true,
-    // Log (base 2) transform data before normalisation
-    log: true,
-    // Save interactive summary tables as HTML
-    saveTables: true,
-    // Include non-coding splice region variants reported in PCGR.
-    pcgrSpliceVars: true,
-  },
+  '2.0.0': DEFAULT_INPUTS_V2,
+  '2.0.3': DEFAULT_INPUTS_V2,
 };
 
 /* SSM Parameter Paths */
@@ -69,10 +80,6 @@ export const SSM_PARAMETER_PATH_PREFIX = path.join(`/orcabus/workflows/${WORKFLO
 export const SSM_PARAMETER_PATH_WORKFLOW_NAME = path.join(
   SSM_PARAMETER_PATH_PREFIX,
   'workflow-name'
-);
-export const SSM_PARAMETER_PATH_DEFAULT_WORKFLOW_VERSION = path.join(
-  SSM_PARAMETER_PATH_PREFIX,
-  'default-workflow-version'
 );
 // Input parameters
 export const SSM_PARAMETER_PATH_PREFIX_INPUTS_BY_WORKFLOW_VERSION = path.join(
@@ -88,9 +95,9 @@ export const SSM_PARAMETER_PATH_ICAV2_PROJECT_ID = path.join(
   SSM_PARAMETER_PATH_PREFIX,
   'icav2-project-id'
 );
-export const SSM_PARAMETER_PATH_PAYLOAD_VERSION = path.join(
+export const SSM_PARAMETER_PATH_PAYLOAD_VERSION_BY_WORKFLOW_VERSION = path.join(
   SSM_PARAMETER_PATH_PREFIX,
-  'payload-version'
+  'payload-versions-by-workflow-version'
 );
 export const SSM_PARAMETER_PATH_LOGS_PREFIX = path.join(SSM_PARAMETER_PATH_PREFIX, 'logs-prefix');
 export const SSM_PARAMETER_PATH_OUTPUT_PREFIX = path.join(
@@ -120,12 +127,9 @@ export const ARRIBA_WGTS_RNA_WORKFLOW_NAME = 'arriba-wgts-rna';
 export const SCHEMA_REGISTRY_NAME = DATA_SCHEMA_REGISTRY_NAME;
 export const SSM_SCHEMA_ROOT = path.join(SSM_PARAMETER_PATH_PREFIX, 'schemas');
 
-/* Future proofing */
-export const NEW_WORKFLOW_MANAGER_IS_DEPLOYED: Record<StageName, boolean> = {
-  BETA: true,
-  GAMMA: true,
-  PROD: true,
-};
-
 // Used to group event rules and step functions
 export const STACK_PREFIX = 'orca-rnasum';
+
+/* Buckets */
+export const TEST_DATA_BUCKET_NAME = TEST_DATA_BUCKET;
+export const REF_DATA_BUCKET_NAME = REFERENCE_DATA_BUCKET;

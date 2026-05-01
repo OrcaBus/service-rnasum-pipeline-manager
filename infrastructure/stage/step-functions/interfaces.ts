@@ -47,7 +47,6 @@ export interface StepFunctionInput {
 export interface BuildStepFunctionProps extends StepFunctionInput {
   lambdaObjects: LambdaObject[];
   eventBus: IEventBus;
-  isNewWorkflowManagerDeployed: boolean;
   ssmParameterPaths: SsmParameterPaths;
 }
 
@@ -116,6 +115,8 @@ export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = 
   validateDraftToReady: [
     // Validation
     'validateDraftDataCompleteSchema',
+    // Post Validation
+    'postSchemaValidation',
   ],
   readyEventToIcav2WesRequestEvent: [
     // Ready to ICAv2 WES lambdas
