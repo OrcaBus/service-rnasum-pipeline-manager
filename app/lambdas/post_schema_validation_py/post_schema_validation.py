@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Post schema validation for oncoanalyser wgts dna workflows
+Post schema validation for rnasum workflows
 
 Performs the following steps:
 * Validate inputs, ensure each uri is available in the project context.
@@ -39,6 +39,18 @@ COMMENT_AUTHOR = "{WORKFLOW_NAME}-workflow-validation-service"
 TEST_BUCKET_ENV_VAR = "TEST_DATA_BUCKET_NAME"
 REF_DATA_BUCKET_ENV_VAR = "REF_DATA_BUCKET_NAME"
 
+# Data uri keys
+DATA_URI_KEYS = [
+    "svTsv",
+    "salmon",
+    "arribaPdf",
+    "arribaTsv",
+    "pcgrTiersTsv",
+    "dragenFusions",
+    "purpleGeneTsv",
+    "dragenMappingMetrics"
+]
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -61,7 +73,6 @@ def validate_engine_parameters(
     # Confirm that the outputUri and logsUri are a subset of the project prefix
     output_uri: str = engine_parameters.get("outputUri", "")
     logs_uri: str = engine_parameters.get("logsUri", "")
-    cache_uri: str = engine_parameters.get("cacheUri", "")
     pipeline_id: str = engine_parameters.get("pipelineId", "")
 
     # Validate the uris are correct
@@ -69,8 +80,6 @@ def validate_engine_parameters(
         return False, f"outputUri '{output_uri}' is not in the project context '{project_prefix}'"
     if not logs_uri.startswith(project_prefix):
         return False, f"logsUri '{logs_uri}' is not in the project context '{project_prefix}'"
-    if not cache_uri.startswith(project_prefix):
-        return False, f"cacheUri '{cache_uri}' is not in the project context '{project_prefix}'"
 
     # Confirm the pipeline is in the project
     try:
@@ -89,8 +98,6 @@ def validate_engine_parameters(
         return False, f"outputUri '{output_uri}' does not end with the portal run id '{portal_run_id}'"
     if not logs_uri.endswith(f"/{portal_run_id}/"):
         return False, f"logsUri '{logs_uri}' does not end with the portal run id '{portal_run_id}'"
-    if not cache_uri.endswith(f"/{portal_run_id}/"):
-        return False, f"cacheUri '{cache_uri}' does not end with the portal run id '{portal_run_id}'"
 
     return True, ""
 
@@ -109,16 +116,8 @@ def validate_inputs(
     """
     # Initalise the data uris list
     data_uris = []
-    # Get all fastq uris from the inputs
-    # (we will support oncoanalyser from fastq in a later iteration)
-    for fastq_obj in inputs.get("fastqListRows", []):
-        # We filter out 'None' values later
-        data_uris.extend([
-            fastq_obj.get("read1FileUri"),
-            fastq_obj.get("read2FileUri")
-        ])
     # Get all bam inputs
-    for key in ["tumorDnaBamUri", "normalDnaBamUri"]:
+    for key in DATA_URI_KEYS:
         data_uris.append(inputs.get(key))
 
     # Remove empty / null values from list
@@ -140,7 +139,7 @@ def validate_inputs(
     data_uris = list(filter(
         lambda uri_iter_: (
             # Doesn't belong to test-data bucket
-            # Doesn't belong to the project bucket
+            # Doesn't belong to the ref-project bucket
             not (
                 uri_iter_.startswith(f"s3://{environ[TEST_BUCKET_ENV_VAR]}/") or
                 uri_iter_.startswith(f"s3://{environ[REF_DATA_BUCKET_ENV_VAR]}/") or

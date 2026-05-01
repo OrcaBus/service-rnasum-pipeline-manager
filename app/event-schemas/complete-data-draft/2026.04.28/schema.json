@@ -9,21 +9,6 @@
       "type": "string",
       "pattern": "^s3://[a-zA-Z0-9_-]*/[a-zA-Z0-9_./-]*/$"
     },
-    "cacheUri": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/s3Uri"
-        },
-        {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": ".*/cache/.*"
-            }
-          ]
-        }
-      ]
-    },
     "logsUri": {
       "allOf": [
         {
@@ -41,12 +26,13 @@
           "$ref": "#/$defs/s3Uri"
         },
         {
-          "type": "string",
-          "pattern": ".*/analysis/.*"
-        },
-        {
-          "type": "string",
-          "pattern": ".*/output/.*"
+          "oneOf": [
+            { "type": "string", "pattern": ".*/analysis/.*" },
+            {
+              "type": "string",
+              "pattern": ".*/output/.*"
+            }
+          ]
         }
       ]
     },
@@ -231,7 +217,7 @@
         "dragenMappingMetrics",
         "salmon",
         "pcgrTiersTsv",
-        "purpleGeneTsv",
+        "cnGeneTsv",
         "svTsv",
         "dataset",
         "reportDir",
@@ -264,9 +250,6 @@
         },
         "logsUri": {
           "$ref": "#/$defs/logsUri"
-        },
-        "cacheUri": {
-          "$ref": "#/$defs/cacheUri"
         }
       },
       "required": ["projectId", "pipelineId", "outputUri", "logsUri"],

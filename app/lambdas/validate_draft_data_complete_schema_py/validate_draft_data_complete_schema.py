@@ -123,7 +123,11 @@ def handler(event, context) -> Dict[str, bool]:
 
     # Use 'default' if payload version is none
     if payload_version is None:
-        payload_version = 'default'
+        # We must have a payload version of the schema
+        # Return if the schema is not valid
+        return {
+            "isValid": False
+        }
 
     # Get the SSM parameters
     schema_registry = get_ssm_parameter_value(environ[SSM_REGISTRY_NAME_ENV_VAR])

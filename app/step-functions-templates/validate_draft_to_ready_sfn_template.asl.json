@@ -8,7 +8,8 @@
       "Assign": {
         "detail": "{% $states.input %}",
         "payload": "{% $states.input.payload ? $states.input.payload : {} %}",
-        "payloadData": "{% $states.input.payload.data ? $states.input.payload.data : {} %}"
+        "payloadData": "{% $states.input.payload.data ? $states.input.payload.data : {} %}",
+        "workflowRunId": "{% $states.input.orcabusId %}"
       }
     },
     "Validate Draft Complete Event": {
@@ -79,7 +80,7 @@
       ],
       "Next": "Workflow inputs are valid",
       "Output": {
-        "isValid": "{% $states.input.isValid %}"
+        "isValid": "{% $states.result.Payload.isValid %}"
       }
     },
     "Workflow inputs are valid": {

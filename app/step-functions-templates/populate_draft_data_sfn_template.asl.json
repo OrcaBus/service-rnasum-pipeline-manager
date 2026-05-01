@@ -8,7 +8,7 @@
       "Assign": {
         "detail": "{% $states.input %}",
         "libraries": "{% $states.input.libraries %}",
-        "payload": "{% (\n  $states.input.payload ? \n  $states.input.payload : {\n    \"version\": \"${__default_payload_version__}\"\n  }\n) %}",
+        "payload": "{% (\n  $states.input.payload ? \n  $states.input.payload : {} %}",
         "data": "{% $states.input.payload.data ? $states.input.payload.data : {} %}",
         "engineParameters": "{% $states.input.payload.data.engineParameters ? $states.input.payload.data.engineParameters : {} %}",
         "tags": "{% $states.input.payload.data.tags ? $states.input.payload.data.tags : {} %}",
@@ -112,7 +112,7 @@
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
               "End": true,
               "Output": {
-                "version": "{% $parse($states.result.Parameter.Value) %}"
+                "version": "{% $states.result.Parameter.Value %}"
               }
             }
           }
@@ -1103,7 +1103,7 @@
           "portalRunId": "{% $detail.portalRunId %}",
           "libraries": "{% $libraries %}",
           "payload": {
-            "version": "{% $payload.version ? $payload.version : '${__default_payload_version__}' %}",
+            "version": "{% $payload.version %}",
             "data": {
               "inputs": "{% $inputs %}",
               "tags": "{% $tags %}",

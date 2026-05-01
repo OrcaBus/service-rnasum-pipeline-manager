@@ -8,9 +8,6 @@ from orcabus_api_tools.workflow import (
     get_workflow_run_from_portal_run_id
 )
 
-# Globals
-DEFAULT_PAYLOAD_VERSION = '2025.09.30'
-
 
 def handler(event, context):
     """
@@ -19,13 +16,16 @@ def handler(event, context):
     :param context:
     :return:
     """
-
     # Get the event inputs
     # Get the event inputs
     portal_run_id = event.get("portalRunId", None)
     libraries = event.get("libraries", None)
     payload = event.get("payload", None)
     upstream_data = event.get("upstreamData", {})
+
+    # Check we have a payload
+    if not payload.get("version"):
+        raise ValueError("Unexpected payload, requires 'version' attribute")
 
     # Get the upstream data
     # From arriba
@@ -38,7 +38,7 @@ def handler(event, context):
     # From sash
     pcgr_tiers_tsv = upstream_data.get("pcgrTiersTsv", None)
     # Gene tsv key depends on rnasum version we're using
-    if payload.get("version") >= "2026.04.30":
+    if payload.get("version") >= "2026.04.28":
         gene_tsv_key = "cnGeneTsv"
     else:
         gene_tsv_key = "purpleGeneTsv"
@@ -154,7 +154,7 @@ def handler(event, context):
 
     # Update the inputs with the dragen draft payload data
     draft_workflow_update["payload"] = {
-        "version": payload.get('version', DEFAULT_PAYLOAD_VERSION),
+        "version": payload.get('version'),
         "data": new_data_object
     }
 
