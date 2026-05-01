@@ -19,20 +19,18 @@ export function buildSsmParameters(scope: Construct, props: BuildSsmParameterPro
     stringValue: props.ssmParameterValues.workflowName,
   });
 
-  // Workflow version
-  new ssm.StringParameter(scope, 'workflow-version', {
-    parameterName: props.ssmParameterPaths.workflowVersion,
-    stringValue: props.ssmParameterValues.workflowVersion,
-  });
-
   /**
    * Payload level SSM Parameters
    */
   // Payload version
-  new ssm.StringParameter(scope, 'payload-version', {
-    parameterName: props.ssmParameterPaths.payloadVersion,
-    stringValue: props.ssmParameterValues.payloadVersion,
-  });
+  for (const [key, value] of Object.entries(
+    props.ssmParameterValues.payloadVersionByWorkflowVersionMap
+  )) {
+    new ssm.StringParameter(scope, `payload-version-${key}`, {
+      parameterName: path.join(props.ssmParameterPaths.prefixPayloadVersionsByWorkflowVersion, key),
+      stringValue: value,
+    });
+  }
 
   /**
    * Default input SSM Parameters

@@ -15,7 +15,6 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import path from 'path';
 import {
   ARRIBA_WGTS_RNA_WORKFLOW_NAME,
-  DEFAULT_PAYLOAD_VERSION,
   DRAFT_STATUS,
   DRAGEN_WGTS_RNA_WORKFLOW_NAME,
   EVENT_SOURCE,
@@ -59,7 +58,6 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
   definitionSubstitutions['__dragen_wgts_rna_workflow_name__'] = DRAGEN_WGTS_RNA_WORKFLOW_NAME;
   definitionSubstitutions['__arriba_wgts_rna_workflow_name__'] = ARRIBA_WGTS_RNA_WORKFLOW_NAME;
   definitionSubstitutions['__sash_workflow_name__'] = SASH_WORKFLOW_NAME;
-  definitionSubstitutions['__default_payload_version__'] = DEFAULT_PAYLOAD_VERSION;
   // Stack workflow name
   definitionSubstitutions['__workflow_name__'] = WORKFLOW_NAME;
 
@@ -73,18 +71,12 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
     definitionSubstitutions['__icav2_wes_request_detail_type__'] = ICAV2_WES_REQUEST_DETAIL_TYPE;
     definitionSubstitutions['__stack_source__'] = EVENT_SOURCE;
     definitionSubstitutions['__ready_event_status__'] = READY_STATUS;
-    definitionSubstitutions['__new_workflow_manager_is_deployed__'] =
-      props.isNewWorkflowManagerDeployed.toString();
   }
 
   if (sfnRequirements.needsSsmParameterStoreAccess) {
     // Default parameter paths
     definitionSubstitutions['__default_project_id_ssm_parameter_name__'] =
       props.ssmParameterPaths.icav2ProjectId;
-    definitionSubstitutions['__workflow_name_ssm_parameter_name__'] =
-      props.ssmParameterPaths.workflowName; // Not currently used
-    definitionSubstitutions['__workflow_version_ssm_parameter_name__'] =
-      props.ssmParameterPaths.workflowVersion; // Not currently used
     definitionSubstitutions['__default_output_uri_prefix_ssm_parameter_name__'] =
       props.ssmParameterPaths.outputPrefix;
     definitionSubstitutions['__default_logs_uri_prefix_ssm_parameter_name__'] =
@@ -96,6 +88,9 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
     // Path to mapping workflow version to ICAv2 Pipeline ID
     definitionSubstitutions['__workflow_id_to_pipeline_id_ssm_parameter_path_prefix__'] =
       props.ssmParameterPaths.prefixPipelineIdsByWorkflowVersion;
+    // Path to payload version
+    definitionSubstitutions['__default_payload_ssm_parameter_prefix__'] =
+      props.ssmParameterPaths.prefixPayloadVersionsByWorkflowVersion;
   }
 
   return definitionSubstitutions;
@@ -150,7 +145,7 @@ function buildStepFunction(scope: Construct, props: BuildStepFunctionProps): Ste
 
   /* Create the state machine definition substitutions */
   const stateMachine = new sfn.StateMachine(scope, props.stateMachineName, {
-    stateMachineName: `${STACK_PREFIX}-${props.stateMachineName}`,
+    stateMachineName: `${STACK_PREFIX}--${props.stateMachineName}`,
     definitionBody: sfn.DefinitionBody.fromFile(
       path.join(STEP_FUNCTIONS_DIR, sfnNameToSnakeCase + `_sfn_template.asl.json`)
     ),
@@ -200,7 +195,6 @@ export function buildAllStepFunctions(
         stateMachineName: stepFunctionName,
         lambdaObjects: props.lambdaObjects,
         eventBus: props.eventBus,
-        isNewWorkflowManagerDeployed: props.isNewWorkflowManagerDeployed,
         ssmParameterPaths: props.ssmParameterPaths,
       })
     );

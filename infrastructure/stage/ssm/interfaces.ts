@@ -1,10 +1,9 @@
-import { WorkflowVersionType } from '../interfaces';
+import { PayloadVersionType, WorkflowVersionType } from '../interfaces';
 
 export interface SsmParameterValues {
   // Payload defaults
   workflowName: string;
-  payloadVersion: string;
-  workflowVersion: string;
+  payloadVersionByWorkflowVersionMap: Record<WorkflowVersionType, PayloadVersionType>;
 
   // Input defaults
   inputsByWorkflowVersionMap: Record<WorkflowVersionType, object>;
@@ -22,8 +21,7 @@ export interface SsmParameterPaths {
 
   // Payload defaults
   workflowName: string;
-  payloadVersion: string;
-  workflowVersion: string;
+  prefixPayloadVersionsByWorkflowVersion: string;
 
   // Input defaults
   prefixDefaultInputsByWorkflowVersion: string;
