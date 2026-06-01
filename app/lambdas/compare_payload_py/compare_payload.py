@@ -10,6 +10,7 @@ the payload has changed
 # Standard library imports
 from deepdiff import DeepDiff
 
+
 def handler(event, context):
     """
     Get the latest payload from the portal run id and compare it to the new object payload
