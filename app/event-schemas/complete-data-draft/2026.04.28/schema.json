@@ -12,7 +12,7 @@
     "logsUri": {
       "allOf": [
         {
-          "$ref": "#/$defs/s3Uri"
+          "$ref": "#/$defs/s3UriDirectory"
         },
         {
           "type": "string",
@@ -23,11 +23,14 @@
     "outputUri": {
       "allOf": [
         {
-          "$ref": "#/$defs/s3Uri"
+          "$ref": "#/$defs/s3UriDirectory"
         },
         {
           "oneOf": [
-            { "type": "string", "pattern": ".*/analysis/.*" },
+            {
+              "type": "string",
+              "pattern": ".*/analysis/.*"
+            },
             {
               "type": "string",
               "pattern": ".*/output/.*"
