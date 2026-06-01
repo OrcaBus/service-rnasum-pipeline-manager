@@ -72,6 +72,7 @@ generate-WRU-draft.sh (library_id)...
                       [--save-draft-payload <output_file>]
                       [--workflow-version <workflow_version>]
                       [--code-version <code_version>]
+					  [--payload-version <payload_version>]
 
 Description:
 Run this script to generate a draft WorkflowRunUpdate event for the specified library IDs.
@@ -102,6 +103,7 @@ Keyword arguments:
   --save-draft-payload=<output_file>            (Optional) Save the generated draft event to local file <output_file> before invoking the WRU validation Lambda.
   --workflow-version=<workflow_version>         (Optional) Override the default workflow version.
   --code-version=<code_version>                 (Optional) Override the default code version.
+  --payload-version=<payload_version>           (Optional) Override the default payload version.
 
 Environment:
   PORTAL_TOKEN: (Required) Your personal portal token from https://portal.${hostname}/
@@ -487,6 +489,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --code-version=*)
       CODE_VERSION="${1#*=}"
+      shift
+      ;;
+	# Payload version
+    --payload-version)
+      PAYLOAD_VERSION="$2"
+      shift 2
+      ;;
+    --payload-version=*)
+      PAYLOAD_VERSION="${1#*=}"
       shift
       ;;
     # Positional arguments (library IDs)
