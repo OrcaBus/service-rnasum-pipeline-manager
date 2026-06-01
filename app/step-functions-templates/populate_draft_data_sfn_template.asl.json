@@ -1049,14 +1049,13 @@
               "Type": "Choice",
               "Choices": [
                 {
-                  "Next": "Update purple gene",
-                  "Condition": "{% $payload.version > '2026' %}",
-                  "Output": {}
+                  "Next": "Update purple gene key",
+                  "Condition": "{% $payload.version > '2026' %}"
                 }
               ],
               "Default": "sash output placeholder"
             },
-            "Update purple gene": {
+            "Update purple gene key": {
               "Type": "Pass",
               "End": true,
               "Output": "{% $states.input ~> | $ | { 'cnGeneTsv': purpleGeneTsv }, ['purpleGeneTsv'] | %}"
