@@ -8,7 +8,7 @@
       "Assign": {
         "detail": "{% $states.input %}",
         "libraries": "{% $states.input.libraries %}",
-        "payload": "{% (\n  $states.input.payload ? \n  $states.input.payload : {} %}",
+        "payload": "{% $states.input.payload ? $states.input.payload : {} %}",
         "data": "{% $states.input.payload.data ? $states.input.payload.data : {} %}",
         "engineParameters": "{% $states.input.payload.data.engineParameters ? $states.input.payload.data.engineParameters : {} %}",
         "tags": "{% $states.input.payload.data.tags ? $states.input.payload.data.tags : {} %}",
@@ -543,7 +543,7 @@
       "Choices": [
         {
           "Next": "Make new WRU event",
-          "Condition": "{% ( ( $data.tags ? $data.tags : {} ) = $tags ~> $not ) or\\n( ( $data.engineParameters ? $data.engineParameters : {} ) = $engineParameters ~> $not ) %}",
+          "Condition": "{% ( ( $data.tags ? $data.tags : {} ) = $tags ~> $not ) or\n( ( $data.engineParameters ? $data.engineParameters : {} ) = $engineParameters ~> $not ) %}",
           "Comment": "Tags or Engine Parameters have been updated"
         }
       ],
