@@ -91,7 +91,7 @@ Positional arguments:
 Keyword arguments:
   -h | --help                                   Print this help message and exit.
   -c | --comment                                (Required) A comment to add to the payload, which will be visible in the workflow run details in OrcaUI.
-  -f | --force                                  (Optional) Don't confirm before pushing the event to EventBridge.
+  -f | --force                                  (Optional) Don't confirm before invoking the WRU validation Lambda.
   -o | --output-uri-prefix=<output_uri_prefix>  (Optional) S3 URI prefix, Outputs written to <output_uri_prefix><portal_run_id> (prefix value must end with a slash).
   -l | --logs-uri-prefix=<logs_uri_prefix>      (Optional) S3 URI prefix, Logs written to <logs_uri_prefix><portal_run_id> (prefix value must end with a slash).
   -p | --project-id=<project_id>                (Optional) ICAv2 Project ID to associate with the workflow run
@@ -99,7 +99,7 @@ Keyword arguments:
                                                   - SMALL / MEDIUM / LARGE / XLARGE / 2XLARGE / 3XLARGE
   -d | --dataset=<dataset>                      (Optional) Dataset, defaults to 'PANCAN'
                                                   - one of ${AVAILABLE_DATASETS_ARRAY[*]}
-  --save-draft-payload=<output_file>            (Optional) Save the generated draft event to local file <output_file> after pushing to event bridge for record purposes.
+  --save-draft-payload=<output_file>            (Optional) Save the generated draft event to local file <output_file> before invoking the WRU validation Lambda.
   --workflow-version=<workflow_version>         (Optional) Override the default workflow version.
   --code-version=<code_version>                 (Optional) Override the default code version.
 
@@ -689,7 +689,7 @@ if [[ "${FORCE}" == "false" ]]; then
     echo_stderr "Send the following payload to the lambda object:"
     jq --raw-output <<< "${lambda_payload}" 1>&2
 
-    read -r -p 'Confirm to push this event to EventBridge? (y/n): ' confirm_push
+    read -r -p 'Confirm to invoke the WRU validation Lambda with this draft payload? (y/n): ' confirm_push
     if [[ ! "${confirm_push}" =~ ^[Yy]$ ]]; then
       echo_stderr "Aborting event push."
       exit 1
