@@ -799,4 +799,4 @@ if ! comment_response="$(generate_workflow_comment "${workflow_run_orcabus_id}" 
 fi
 
 echo_stderr "Workflow Run Creation Event complete!"
-echo_stderr "Please head to 'https://orcaui.$(get_hostname_from_ssm)/runs/workflow/${workflow_run_orcabus_id}' to track the status of the workflow run"
+echo_stderr "Please head to 'https://orcaui.$(get_hostname_from_ssm)/workflows/workflowRuns/${workflow_run_orcabus_id}' to track the status of the workflow run"
