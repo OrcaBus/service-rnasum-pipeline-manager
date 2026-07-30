@@ -15,6 +15,7 @@ export const EVENT_SCHEMAS_DIR = path.join(APP_ROOT, 'event-schemas');
 
 /* Workflow constants */
 export const WORKFLOW_NAME = 'rnasum';
+export const DEFAULT_PAYLOAD_VERSION: PayloadVersionType = '2026.04.28';
 
 // Add prefix placeholders
 export const WORKFLOW_LOGS_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}logs/${WORKFLOW_NAME}/`;

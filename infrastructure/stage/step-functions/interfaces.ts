@@ -8,28 +8,28 @@ import { SsmParameterPaths } from '../ssm/interfaces';
  * Step Function Interfaces
  */
 export type StateMachineName =
-  // Glue code
+  // Upstream Events
   | 'glueSucceededEventsToDraftUpdate'
-  // Draft populator
+  // Populate Draft Data
   | 'populateDraftData'
-  // Validate draft to ready
-  | 'validateDraftToReady'
+  // Validate draft data and put ready event
+  | 'validateDraftDataAndPutReadyEvent'
   // Ready-to-Submitted
   | 'readyEventToIcav2WesRequestEvent'
   // Post-submission event conversion
-  | 'icav2WesAscEventToWorkflowRscEvent';
+  | 'icav2WesEventToWrscEvent';
 
 export const stateMachineNameList: StateMachineName[] = [
-  // Glue code
+  // Upstream Events
   'glueSucceededEventsToDraftUpdate',
-  // Draft populator
+  // Populate Draft Data
   'populateDraftData',
-  // Validate draft to ready
-  'validateDraftToReady',
+  // Validate draft data and put ready event
+  'validateDraftDataAndPutReadyEvent',
   // Ready-to-Submitted
   'readyEventToIcav2WesRequestEvent',
   // Post-submission event conversion
-  'icav2WesAscEventToWorkflowRscEvent',
+  'icav2WesEventToWrscEvent',
 ];
 
 // Requirements interface for Step Functions
@@ -59,25 +59,20 @@ export type WireUpPermissionsProps = BuildStepFunctionProps & StepFunctionObject
 export type BuildStepFunctionsProps = Omit<BuildStepFunctionProps, 'stateMachineName'>;
 
 export const stepFunctionsRequirementsMap: Record<StateMachineName, StepFunctionRequirements> = {
-  // Glue code
   glueSucceededEventsToDraftUpdate: {
     needsEventPutPermission: true,
   },
-  // Draft populator
   populateDraftData: {
     needsEventPutPermission: true,
     needsSsmParameterStoreAccess: true,
   },
-  // Validate draft to ready
-  validateDraftToReady: {
+  validateDraftDataAndPutReadyEvent: {
     needsEventPutPermission: true,
   },
-  // Ready-to-Submitted
   readyEventToIcav2WesRequestEvent: {
     needsEventPutPermission: true,
   },
-  // Post-submission event conversion
-  icav2WesAscEventToWorkflowRscEvent: {
+  icav2WesEventToWrscEvent: {
     needsEventPutPermission: true,
   },
 };
@@ -101,6 +96,7 @@ export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = 
     'getSashOutputsFromPortalRunId',
     'generateWruEventObjectWithMergedData',
     'comparePayload',
+    'getMissingSchemaFields',
     'getWorkflowRunObject',
     'findLatestWorkflow',
     'getDraftPayload',
@@ -111,8 +107,10 @@ export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = 
     'getFastqIdListFromRgidList',
     // Validation
     'validateDraftDataCompleteSchema',
+    // Commentary Functions
+    'addPopulateDraftComment',
   ],
-  validateDraftToReady: [
+  validateDraftDataAndPutReadyEvent: [
     // Validation
     'validateDraftDataCompleteSchema',
     // Post Validation
@@ -122,8 +120,9 @@ export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = 
     // Ready to ICAv2 WES lambdas
     'convertReadyEventInputsToIcav2WesEventInputs',
   ],
-  icav2WesAscEventToWorkflowRscEvent: [
+  icav2WesEventToWrscEvent: [
     // ICAv2 WES to WRSC Event lambdas
     'convertIcav2WesEventToWrscEvent',
+    'addWesFailureComment',
   ],
 };

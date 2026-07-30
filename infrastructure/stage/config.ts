@@ -12,8 +12,6 @@ import {
   SSM_PARAMETER_PATH_PREFIX_INPUTS_BY_WORKFLOW_VERSION,
   SSM_PARAMETER_PATH_PREFIX_PIPELINE_IDS_BY_WORKFLOW_VERSION,
   SSM_PARAMETER_PATH_WORKFLOW_NAME,
-  REF_DATA_BUCKET_NAME,
-  TEST_DATA_BUCKET_NAME,
   WORKFLOW_LOGS_PREFIX,
   WORKFLOW_NAME,
   WORKFLOW_OUTPUT_PREFIX,
@@ -78,10 +76,6 @@ export const getStatelessStackProps = (stage: StageName): StatelessApplicationSt
     // Event bus object
     eventBusName: EVENT_BUS_NAME,
     ssmParameterPaths: getSsmParameterPaths(),
-
-    // TestData and RefData bucket names
-    testDataBucketName: TEST_DATA_BUCKET_NAME,
-    refDataBucketName: REF_DATA_BUCKET_NAME,
 
     // StageName
     stageName: stage,
