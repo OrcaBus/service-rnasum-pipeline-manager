@@ -4,6 +4,7 @@
 - Contact: Alexis Lucattini, [alexisl@unimelb.edu.au](mailto:alexisl@unimelb.edu.au)
 
 Table of Contents
+
 - [Introduction](#introduction)
 - [Common Issues](#common-issues)
   - [DRAFT event not progressing](#draft-event-not-progressing)
@@ -12,11 +13,9 @@ Table of Contents
   - [Pipeline execution failures](#pipeline-execution-failures)
 - [Debugging Tools](#debugging-tools)
 
-
 ## Introduction
 
 This SOP provides guidance for diagnosing and resolving common issues with the RNAsum pipeline manager. The RNAsum pipeline depends on upstream Dragen WGTS RNA, Sash, and Arriba WGTS RNA outputs, which adds additional failure points compared to non-downstream pipelines.
-
 
 ## Common Issues
 
@@ -33,6 +32,7 @@ This SOP provides guidance for diagnosing and resolving common issues with the R
 3. **populate-draft-data failure** — Check the Step Functions execution history for the `populateDraftData` state machine. Look for Lambda errors or missing SSM parameters.
 
 **Resolution**:
+
 - Check workflow run comments in the OrcaBus Portal for diagnostic messages
 - Check Step Functions execution history in the AWS Console
 - Verify upstream workflow runs have SUCCEEDED status
@@ -47,6 +47,7 @@ This SOP provides guidance for diagnosing and resolving common issues with the R
 2. **Post-schema validation failure** — Business-rule checks failed (e.g. invalid project ID, inaccessible URIs)
 
 **Resolution**:
+
 - Check workflow run comments — validation failures are written as comments
 - Validate the payload manually against the [schema](../../../../app/event-schemas/)
 - Verify that `projectId` is valid and the pipeline is accessible in that project
@@ -63,6 +64,7 @@ This SOP provides guidance for diagnosing and resolving common issues with the R
 3. **Ready-to-ICAv2-WES Lambda failure** — Check the `readyEventToIcav2WesRequestEvent` state machine execution
 
 **Resolution**:
+
 - Check the `readyEventToIcav2WesRequestEvent` Step Functions execution
 - Verify the pipeline ID is accessible in the target ICAv2 project
 - Check ICAv2 WES Manager logs
@@ -78,18 +80,18 @@ This SOP provides guidance for diagnosing and resolving common issues with the R
 3. **Resource limits** — ICAv2 compute resource limits exceeded
 
 **Resolution**:
+
 - Check the workflow run comment for the WES failure message
 - Review the ICAv2 analysis logs (accessible via the analysis ID in the portal)
 - Verify input data integrity at the S3 URIs
 - Check ICAv2 project resource availability
 
-
 ## Debugging Tools
 
-| Tool | Usage |
-|---|---|
-| OrcaBus Portal | View workflow run status, comments, and linked libraries |
-| AWS Step Functions Console | View execution history, input/output for each state |
-| AWS CloudWatch Logs | Lambda function logs for detailed error messages |
-| ICAv2 Console | Analysis status and logs for pipeline execution |
-| AWS EventBridge | Event delivery history for troubleshooting routing issues |
+| Tool                       | Usage                                                     |
+| -------------------------- | --------------------------------------------------------- |
+| OrcaBus Portal             | View workflow run status, comments, and linked libraries  |
+| AWS Step Functions Console | View execution history, input/output for each state       |
+| AWS CloudWatch Logs        | Lambda function logs for detailed error messages          |
+| ICAv2 Console              | Analysis status and logs for pipeline execution           |
+| AWS EventBridge            | Event delivery history for troubleshooting routing issues |

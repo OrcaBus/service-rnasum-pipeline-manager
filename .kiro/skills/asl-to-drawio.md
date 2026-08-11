@@ -269,7 +269,7 @@ The diagram below is the reference blueprint produced from this workflow. Use it
 template when generating diagrams for other ASL files — match the node styles, edge pin conventions,
 waypoint patterns, and column layout shown here.
 
-#[[file:../../docs/draw-io-exports/populate-draft-data.drawio]]
+#[[file]]
 
 The logical flow this represents:
 

@@ -4,11 +4,11 @@
 - Contact: Alexis Lucattini, [alexisl@unimelb.edu.au](mailto:alexisl@unimelb.edu.au)
 
 Table of Contents
+
 - [Introduction](#introduction)
 - [Requirements](#requirements)
 - [Procedure](#procedure)
 - [Confirmation](#confirmation)
-
 
 ## Introduction
 
@@ -27,7 +27,6 @@ Here we describe the SOP for manual execution of the pipeline.
   - [curl](https://curl.se/download.html) version 7.76.0 or higher
   - [semver](https://github.com/fsaintjacques/semver-tool)
 
-
 ## Procedure
 
 To initiate a pipeline execution we need to generate an initial DRAFT event. For more details consult the main [README](../../../../README.md).
@@ -43,7 +42,6 @@ For convenience, we provide a shell script that generates and optionally submits
 - The script should produce the JSON output of the DRAFT event that can be inspected to double check that reflects the intended request
   - Take note of the generated `workflowRunName` or `portalRunId` and the URL to the OrcaBus Portal view of the workflow.
   - You can have the script save the output json file by using the `--save-draft-payload` method.
-
 
 ## Confirmation
 

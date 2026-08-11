@@ -4,6 +4,7 @@
 - Contact: Alexis Lucattini, [alexisl@unimelb.edu.au](mailto:alexisl@unimelb.edu.au)
 
 Table of Contents
+
 - [Introduction](#introduction)
 - [Requirements](#requirements)
 - [Validation Procedure](#validation-procedure)
@@ -11,11 +12,9 @@ Table of Contents
   - [End-to-End Validation](#end-to-end-validation)
 - [Expected Outcomes](#expected-outcomes)
 
-
 ## Introduction
 
 This SOP describes how to validate the RNAsum pipeline after making changes to infrastructure, parameters, or the CWL workflow. Validation ensures that the pipeline can successfully process a DRAFT event through to SUCCEEDED status.
-
 
 ## Requirements
 
@@ -23,7 +22,6 @@ This SOP describes how to validate the RNAsum pipeline after making changes to i
 - Access to the OrcaBus Portal
 - Node.js 22.9.0 with pnpm enabled
 - Test libraries available in the target environment
-
 
 ## Validation Procedure
 
@@ -53,7 +51,6 @@ This runs `tsc` compilation followed by Jest tests that check all CDK stacks aga
    - Verify the workflow run reached SUCCEEDED status
    - Check that output URIs point to valid S3 locations
    - Review any comments written to the workflow run record
-
 
 ## Expected Outcomes
 

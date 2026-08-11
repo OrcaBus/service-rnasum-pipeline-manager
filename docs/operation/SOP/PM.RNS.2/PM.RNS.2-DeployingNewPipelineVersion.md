@@ -4,6 +4,7 @@
 - Contact: Alexis Lucattini, [alexisl@unimelb.edu.au](mailto:alexisl@unimelb.edu.au)
 
 Table of Contents
+
 - [Introduction](#introduction)
 - [Requirements](#requirements)
 - [Development Deployment](#development-deployment)
@@ -16,7 +17,6 @@ Table of Contents
   - [Infrastructure Constants Updates](#infrastructure-constants-updates)
   - [Workflow Manager Updates](#workflow-manager-updates)
 
-
 ## Introduction
 
 This SOP covers how to deploy a new version of the RNAsum pipeline to ICAv2. The RNAsum pipeline depends on upstream Dragen WGTS RNA, Sash, and Arriba WGTS RNA outputs; ensure those pipelines are already deployed and validated before deploying a new RNAsum version.
@@ -27,7 +27,6 @@ This SOP covers how to deploy a new version of the RNAsum pipeline to ICAv2. The
 - ICAv2 CLI tools installed ([ICAv2 CLI](https://help.ica.illumina.com/command-line-interface/cli-installation), [ICAv2 CLI Plugins](https://github.com/umccr/icav2-cli-plugins/wiki))
 - AWS access to the appropriate accounts
 - Contributor level permissions in the target ICAv2 project
-
 
 ## Development Deployment
 
@@ -84,7 +83,6 @@ If the pipeline did not work correctly:
    icav2 projectpipelines update rnasum-pipeline__<version>.zip <pipeline_id>
    ```
 4. Re-run the pipeline
-
 
 ## Production Deployment
 
