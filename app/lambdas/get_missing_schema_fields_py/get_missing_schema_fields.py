@@ -48,7 +48,10 @@ def handler(event, context):
     }
     """
     data = event.get("data", {})
-    payload_version = event.get("payloadVersion", environ.get(DEFAULT_PAYLOAD_VERSION_ENV_VAR, ""))
+    payload_version = event.get("payloadVersion") or environ.get(DEFAULT_PAYLOAD_VERSION_ENV_VAR, "")
+
+    if not payload_version:
+        raise ValueError("payloadVersion is not set and DEFAULT_PAYLOAD_VERSION environment variable is empty")
 
     # Get schema
     schema_registry = get_ssm_parameter_value(environ[SSM_REGISTRY_NAME_ENV_VAR])
