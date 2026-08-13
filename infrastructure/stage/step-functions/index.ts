@@ -46,7 +46,7 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
   for (const lambdaObject of lambdaFunctions) {
     const sfnSubtitutionKey = `__${camelCaseToSnakeCase(lambdaObject.lambdaName)}_lambda_function_arn__`;
     definitionSubstitutions[sfnSubtitutionKey] =
-      lambdaObject.lambdaFunction.currentVersion.functionArn;
+      lambdaObject.lambdaFunction.latestVersion.functionArn;
   }
 
   /* Common substitutions */
@@ -136,8 +136,19 @@ function wireUpStateMachinePermissions(props: WireUpPermissionsProps): void {
   }
   /* Allow the state machine to invoke the lambda function */
   for (const lambdaObject of lambdaFunctions) {
-    lambdaObject.lambdaFunction.currentVersion.grantInvoke(props.sfnObject);
+    lambdaObject.lambdaFunction.grantInvoke(props.sfnObject);
   }
+  NagSuppressions.addResourceSuppressions(
+    props.sfnObject,
+    [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason:
+          'We invoke $LATEST to allow redrives after Lambda bug fixes without redeploying the state machine',
+      },
+    ],
+    true
+  );
 }
 
 function buildStepFunction(scope: Construct, props: BuildStepFunctionProps): StepFunctionObject {

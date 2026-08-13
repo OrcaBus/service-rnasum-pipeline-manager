@@ -26,7 +26,7 @@ ANALYSIS_STORAGE_SIZE="SMALL"
 
 # SOP constants
 SOP_VERSION="2026.03.05"
-SOP_ID="PM.RNASUM.1"
+SOP_ID="PM.RNS.1"
 GITHUB_REPO="OrcaBus/service-rnasum-pipeline-manager"
 THIS_SCRIPT_PATH="docs/operation/SOP/${SOP_ID}/generate-WRU-draft.sh"
 

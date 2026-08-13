@@ -32,10 +32,7 @@ export class StatelessApplicationStack extends GitStack {
     );
 
     // Build the lambdas
-    const lambdas = buildAllLambdas(this, {
-      refDataBucketName: props.refDataBucketName,
-      testDataBucketName: props.testDataBucketName,
-    });
+    const lambdas = buildAllLambdas(this);
 
     // Build the state machines
     const stateMachines = buildAllStepFunctions(this, {

@@ -1,414 +1,260 @@
-Template Service
-================================================================================
+# RNAsum Pipeline Manager
 
-- [Template Service](#template-service)
-  - [Service Description](#service-description)
-    - [Name \& responsibility](#name--responsibility)
-    - [Description](#description)
-    - [API Endpoints](#api-endpoints)
-    - [Consumed Events](#consumed-events)
-    - [Published Events](#published-events)
-    - [(Internal) Data states \& persistence model](#internal-data-states--persistence-model)
-    - [Major Business Rules](#major-business-rules)
-    - [Permissions \& Access Control](#permissions--access-control)
-    - [Change Management](#change-management)
-      - [Versioning strategy](#versioning-strategy)
-      - [Release management](#release-management)
-  - [Infrastructure \& Deployment](#infrastructure--deployment)
-    - [Stateful](#stateful)
-    - [Stateless](#stateless)
-    - [CDK Commands](#cdk-commands)
-    - [Stacks](#stacks)
-  - [Development](#development)
-    - [Project Structure](#project-structure)
-    - [Setup](#setup)
-      - [Requirements](#requirements)
-      - [Install Dependencies](#install-dependencies)
-      - [First Steps](#first-steps)
-    - [Conventions](#conventions)
-    - [Linting \& Formatting](#linting--formatting)
-    - [Testing](#testing)
-  - [Glossary \& References](#glossary--references)
+- [Overview](#overview)
+- [Pipeline State Flow](#pipeline-state-flow)
+  - [1. Glue — upstream SUCCEEDED events update DRAFT runs](#1-glue--upstream-succeeded-events-update-draft-runs)
+  - [2. DRAFT → populated DRAFT](#2-draft--populated-draft)
+  - [3. Populated DRAFT → READY](#3-populated-draft--ready)
+  - [4. READY → ICAv2 submission](#4-ready--icav2-submission)
+  - [5. ICAv2 state changes → WorkflowRunUpdate events](#5-icav2-state-changes--workflowrunupdate-events)
+- [Event Contract](#event-contract)
+  - [Consumed Events](#consumed-events)
+  - [Published Events](#published-events)
+- [Draft Event Payload](#draft-event-payload)
+  - [Minimal DRAFT event detail](#minimal-draft-event-detail)
+  - [Auto-populated Fields](#auto-populated-fields)
+  - [Schema Validation](#schema-validation)
+- [Submitting a Draft Event](#submitting-a-draft-event)
+- [Infrastructure](#infrastructure)
+  - [Stateful Resources](#stateful-resources)
+  - [Stateless Resources](#stateless-resources)
+  - [Stacks](#stacks)
+- [CI/CD and Release Management](#cicd-and-release-management)
+- [Related Services](#related-services)
+- [SOPs](#sops)
+- [Glossary & References](#glossary--references)
 
+---
 
-Service Description
---------------------------------------------------------------------------------
+## Overview
 
-### Name & responsibility
+This service manages the lifecycle of the **RNAsum pipeline** — an RNA expression reporting pipeline that integrates outputs from the Dragen WGTS RNA, Sash, and Arriba WGTS RNA pipelines to produce comprehensive RNA expression analysis reports, including gene expression profiling, fusion prioritisation, and immune deconvolution on ICAv2.
 
-### Description
+The pipeline runs on [ICAv2](https://help.ica.illumina.com/) via CWL. Orchestration follows the standard [ICAv2-centric Pipeline Architecture](https://github.com/OrcaBus/wiki/blob/main/orcabus/platform/pipelines.md#pipeline-orchestration-general-logic).
 
-### API Endpoints
+This is a **downstream service** — it depends on the successful completion of the Dragen WGTS RNA, Sash, and Arriba WGTS RNA pipelines (via glue state machines) to obtain their analysis outputs as inputs.
 
-This service provides a RESTful API following OpenAPI conventions.
-The Swagger documentation of the production endpoint is available here:
+**Upstream**: [Dragen WGTS RNA](https://github.com/OrcaBus/service-dragen-wgts-rna-pipeline-manager), [Sash](https://github.com/OrcaBus/service-sash-pipeline-manager), [Arriba WGTS RNA](https://github.com/OrcaBus/service-arriba-wgts-rna-pipeline-manager)
+**Downstream**: None (terminal pipeline in the RNA analysis chain)
 
+---
+
+## Pipeline State Flow
+
+The service orchestrates five Step Functions state machines that together drive a workflow run from initial DRAFT submission through to ICAv2 execution and result reporting.
+
+### 1. Glue — upstream SUCCEEDED events update DRAFT runs
+
+**State machine**: [`glue_succeeded_events_to_draft_update_sfn_template`](app/step-functions-templates/glue_succeeded_events_to_draft_update_sfn_template.asl.json)
+
+![Glue succeeded events to draft update](docs/draw-io-exports/glue-succeeded-events-to-draft-update.svg)
+
+When an upstream pipeline (Dragen WGTS RNA, Sash, or Arriba WGTS RNA) emits a `WorkflowRunStateChange` SUCCEEDED event, this state machine finds matching DRAFT workflow runs for the RNAsum pipeline and merges the upstream outputs into the DRAFT payload.
+
+### 2. DRAFT → populated DRAFT
+
+**State machine**: [`populate_draft_data_sfn_template`](app/step-functions-templates/populate_draft_data_sfn_template.asl.json)
+
+![Populate draft data](docs/draw-io-exports/populate-draft-data.svg)
+
+When a `WorkflowRunStateChange` DRAFT event arrives, this state machine populates any missing payload fields by resolving defaults from SSM and querying upstream services:
+
+1. **Resolve engine parameters** — `projectId`, `pipelineId`, `outputUri`, `logsUri`
+2. **Resolve tags** — library metadata, subject/individual IDs, upstream run IDs
+3. **Resolve inputs** — Dragen WGTS RNA outputs, Sash outputs, Arriba WGTS RNA outputs, reference data path
+4. **Emit DRAFT update event** with the fully populated payload
+
+### 3. Populated DRAFT → READY
+
+**State machine**: [`validate_draft_data_and_put_ready_event_sfn_template`](app/step-functions-templates/validate_draft_data_and_put_ready_event_sfn_template.asl.json)
+
+![Validate draft and put READY event](docs/draw-io-exports/validate-draft-and-put-ready-event.svg)
+
+Triggered when a DRAFT `WorkflowRunStateChange` event is received with a fully populated payload:
+
+1. **Schema validation** — validates against the registered AWS Schemas registry entry
+2. **Post-schema validation** — business-rule checks (engine parameter consistency, URI accessibility)
+3. **Push READY event** — emits a `WorkflowRunStateChange` READY event to EventBridge
+
+### 4. READY → ICAv2 submission
+
+**State machine**: [`ready_event_to_icav2_wes_request_event_sfn_template`](app/step-functions-templates/ready_event_to_icav2_wes_request_event_sfn_template.asl.json)
+
+![READY to ICAv2 WES request](docs/draw-io-exports/ready-to-icav2-wes-request.svg)
+
+Converts a READY event into an `Icav2WesRequest` event that the ICAv2 WES Manager consumes to launch the CWL analysis:
+
+1. **Convert** — translates the READY event payload into ICAv2 WES request format
+2. **Push** — emits an `Icav2WesRequest` event to `OrcaBusMain`
+
+### 5. ICAv2 state changes → WorkflowRunUpdate events
+
+**State machine**: [`icav2_wes_event_to_wrsc_event_sfn_template`](app/step-functions-templates/icav2_wes_event_to_wrsc_event_sfn_template.asl.json)
+
+![ICAv2 WES event to WRSC](docs/draw-io-exports/icav2-wes-event-to-wrsc.svg)
+
+Listens for `Icav2WesAnalysisStateChange` events and converts them into `WorkflowRunUpdate` events:
+
+1. **Convert** — maps the ICAv2 status to a `WorkflowRunStateChange` event
+2. **Route by status**:
+   - **SUCCEEDED** — pushes the WRSC event
+   - **FAILED** — writes a failure comment, then pushes the WRSC event
+   - **Any other status** — pushes the WRSC event directly
+
+---
+
+## Event Contract
 
 ### Consumed Events
 
-| Name / DetailType | Source         | Schema Link       | Description         |
-|-------------------|----------------|-------------------|---------------------|
-| `SomeServiceStateChange` | `orcabus.someservice` | <schema link> | Announces service state changes |
+| DetailType                    | Source                    | Schema                                                                                                                                     | Description                                          |
+|-------------------------------|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| `WorkflowRunStateChange`      | `orcabus.workflowmanager` | [WorkflowRunStateChange](https://github.com/OrcaBus/wiki/tree/main/orcabus-platform#workflowrunstatechange)                                | Carries DRAFT (and later READY) workflow run records |
+| `WorkflowRunStateChange`      | `orcabus.workflowmanager` | same                                                                                                                                       | Upstream SUCCEEDED events (dragen-wgts-rna, sash, arriba-wgts-rna) |
+| `Icav2WesAnalysisStateChange` | `orcabus.icav2wes`        | [Icav2WesAnalysisStateChange](https://github.com/OrcaBus/service-icav2-wes-manager/blob/main/app/event-schemas/analysis-state-change.json) | ICAv2 analysis state updates                         |
 
 ### Published Events
 
-| Name / DetailType | Source         | Schema Link       | Description         |
-|-------------------|----------------|-------------------|---------------------|
-| `TemplateStateChange` | `orcabus.templatemanager` | <schema link> | Announces Template data state changes |
+| DetailType          | Source           | Schema                                                                                                      | Description                                         |
+|---------------------|------------------|-------------------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| `WorkflowRunUpdate` | `orcabus.rnasum` | [WorkflowRunUpdate](https://github.com/OrcaBus/wiki/blob/main/orcabus/platform/events.md#workflowrunupdate) | Pipeline state updates (DRAFT, READY, running, succeeded…) |
 
+---
 
-### (Internal) Data states & persistence model
+## Draft Event Payload
 
-### Major Business Rules
+A DRAFT event can be submitted with a minimal `data` payload — the populate state machine resolves all defaults. The `data` object may be omitted entirely. The final validated payload must satisfy the [complete-data draft schema](app/event-schemas/complete-data-draft/2026.04.28/complete-data-draft-schema.json).
 
-### Permissions & Access Control
+### Minimal DRAFT event detail
 
-### Change Management
-
-#### Versioning strategy
-
-E.g. Manual tagging of git commits following Semantic Versioning (semver) guidelines.
-
-#### Release management
-
-The service employs a fully automated CI/CD pipeline that automatically builds and releases all changes to the `main` code branch.
-
-#### Making your own draft events with BASH / JQ (dev)
-
-There may be circumstances where you wish to generate WRSC events manually, the below is a quick solution for
-generating a draft for an RNASum workflow.
-
-The draft populator step function will also pull necessary fastq files out of archive.
-
-<details>
-
-<summary>Click to expand</summary>
-
-```shell
-# Globals
-EVENT_BUS_NAME="OrcaBusMain"
-DETAIL_TYPE="WorkflowRunUpdate"
-SOURCE="orcabus.manual"
-
-WORKFLOW_NAME="rnasum"
-WORKFLOW_VERSION="2.0.0"
-EXECUTION_ENGINE="ICA"
-CODE_VERSION="AAAAAAA"  # PLACEHOLDER - replace with actual commit hash
-
-PAYLOAD_VERSION="2025.08.05"
-
-# Glocals
-TUMOR_DNA_LIBRARY_ID="L2300943"
-NORMAL_DNA_LIBRARY_ID="L2300950"
-TUMOR_RNA_LIBRARY_ID="L2500568"
-
-# Functions
-get_hostname_from_ssm(){
-  aws ssm get-parameter \
-    --name "/hosted_zone/umccr/name" \
-    --output json | \
-  jq --raw-output \
-    '.Parameter.Value'
+```json
+{
+  "status": "DRAFT",
+  "workflowName": "rnasum",
+  "workflowVersion": "2.0.0",
+  "workflowRunName": "umccr--automated--rnasum--2-0-0--<portalRunId>",
+  "portalRunId": "<portalRunId>",
+  "linkedLibraries": [
+    { "libraryId": "L2401541", "orcabusId": "lib.01..." },
+    { "libraryId": "L2401540", "orcabusId": "lib.02..." },
+    { "libraryId": "L2500568", "orcabusId": "lib.03..." }
+  ]
 }
-
-get_orcabus_token(){
-  aws secretsmanager get-secret-value \
-    --secret-id orcabus/token-service-jwt \
-    --output json \
-    --query SecretString | \
-  jq --raw-output \
-    'fromjson | .id_token'
-}
-
-get_pipeline_id_from_workflow_version(){
-  local workflow_version="$1"
-  aws ssm get-parameter \
-    --name "/orcabus/workflows/rnasum/pipeline-ids-by-workflow-version/${workflow_version}" \
-    --output json | \
-  jq --raw-output \
-    '.Parameter.Value'
-}
-
-get_library_obj_from_library_id(){
-  local library_id="$1"
-  curl --silent --fail --show-error --location \
-    --header "Authorization: Bearer $(get_orcabus_token)" \
-    --url "https://metadata.$(get_hostname_from_ssm)/api/v1/library?libraryId=${library_id}" | \
-  jq --raw-output \
-    '
-      .results[0] |
-      {
-        "libraryId": .libraryId,
-        "orcabusId": .orcabusId
-      }
-    '
-}
-
-generate_portal_run_id(){
-  echo "$(date -u +'%Y%m%d')$(openssl rand -hex 4)"
-}
-
-get_linked_libraries(){
-  local tumor_dna_library_id="$1"
-  local normal_dna_library_id="$2"
-  local tumor_rna_library_id="$3"
-
-  jq --null-input --compact-output --raw-output \
-    --argjson tumorDnaLibraryObj "$(get_library_obj_from_library_id "$tumor_dna_library_id")" \
-    --argjson normalDnaLibraryObj "$(get_library_obj_from_library_id "$normal_dna_library_id")" \
-    --argjson tumorRnaLibraryObj "$(get_library_obj_from_library_id "$tumor_rna_library_id")" \
-    '
-      [
-          $tumorDnaLibraryObj,
-          $normalDnaLibraryObj,
-          $tumorRnaLibraryObj
-      ] |
-      # Filter out empty values, tumorLibraryId is optional
-      # Then write back to JSON
-      map(select(length > 0))
-    '
-}
-
-get_workflow(){
-  local workflow_name="$1"
-  local workflow_version="$2"
-  local execution_engine="$3"
-  local execution_engine_pipeline_id="$4"
-  local code_version="$5"
-  curl --silent --fail --show-error --location \
-    --request GET \
-    --get \
-    --header "Authorization: Bearer $(get_orcabus_token)" \
-    --url "https://workflow.$(get_hostname_from_ssm)/api/v1/workflow" \
-    --data "$( \
-      jq \
-       --null-input --compact-output --raw-output \
-       --arg workflowName "$workflow_name" \
-       --arg workflowVersion "$workflow_version" \
-       --arg executionEngine "$execution_engine" \
-       --arg executionEnginePipelineId "$execution_engine_pipeline_id" \
-       --arg codeVersion "$code_version" \
-       '
-         {
-            "name": $workflowName,
-            "version": $workflowVersion,
-            "executionEngine": $executionEngine,
-            "executionEnginePipelineId": $executionEnginePipelineId,
-            "codeVersion": $codeVersion
-         } |
-         to_entries |
-         map(
-           "\(.key)=\(.value)"
-         ) |
-         join("&")
-       ' \
-    )" | \
-  jq --compact-output --raw-output \
-    '
-      .results[0]
-    '
-}
-
-# Generate the event
-event_cli_json="$( \
-  jq --null-input --raw-output \
-    --arg eventBusName "$EVENT_BUS_NAME" \
-    --arg detailType "$DETAIL_TYPE" \
-    --arg source "$SOURCE" \
-    --argjson workflow "$(get_workflow \
-      "${WORKFLOW_NAME}" "${WORKFLOW_VERSION}" \
-      "${EXECUTION_ENGINE}" "$(get_pipeline_id_from_workflow_version "${WORKFLOW_VERSION}")" \
-      "${CODE_VERSION}"
-    )" \
-    --arg payloadVersion "$PAYLOAD_VERSION" \
-    --arg portalRunId "$(generate_portal_run_id)" \
-    --argjson libraries "$(get_linked_libraries "${TUMOR_DNA_LIBRARY_ID}" "${NORMAL_DNA_LIBRARY_ID}" "${TUMOR_RNA_LIBRARY_ID}")" \
-    '
-      {
-        # Standard fields for the event
-        "EventBusName": $eventBusName,
-        "DetailType": $detailType,
-        "Source": $source,
-        # Detail must be a JSON object in string format
-        "Detail": (
-          {
-            "status": "DRAFT",
-            "timestamp": (now | todateiso8601),
-            "workflow": $workflow,
-            "workflowRunName": ("umccr--automated--" + $workflow["name"] + "--" + ($workflow["version"] | gsub("\\."; "-")) + "--" + $portalRunId),
-            "portalRunId": $portalRunId,
-            "libraries": $libraries
-          } |
-          tojson
-        )
-      } |
-      # Now wrap into an "entry" for the CLI
-      {
-        "Entries": [
-          .
-        ]
-      }
-    ' \
-)"
-
-aws events put-events --no-cli-pager --cli-input-json "${event_cli_json}"
 ```
 
-</details>
+The `payload.data` object may be included to override any auto-populated fields. An empty or absent `payload.data` is valid.
 
+### Auto-populated Fields
 
+| Field | Resolved from |
+|---|---|
+| `engineParameters.projectId` | SSM: default ICAv2 project for the environment |
+| `engineParameters.pipelineId` | SSM: pipeline ID map keyed by workflow version |
+| `engineParameters.outputUri` | SSM: output prefix + `portalRunId` |
+| `engineParameters.logsUri` | SSM: logs prefix + `portalRunId` |
+| `tags.libraryId` | From `linkedLibraries` (normal entry) |
+| `tags.tumorLibraryId` | From `linkedLibraries` (tumor entry) |
+| `tags.fastqRgidList` | Fastq Glue — resolved from `libraryId` |
+| `tags.tumorFastqRgidList` | Fastq Glue — resolved from `tumorLibraryId` |
+| `tags.subjectId` / `individualId` | Metadata service |
+| `inputs.dragenWgtsRnaDir` | Dragen WGTS RNA SUCCEEDED outputs |
+| `inputs.sashDir` | Sash SUCCEEDED outputs |
+| `inputs.arribaWgtsRnaDir` | Arriba WGTS RNA SUCCEEDED outputs |
+| `inputs.refDataPath` | SSM: default reference data for workflow version |
 
-Infrastructure & Deployment
---------------------------------------------------------------------------------
+### Schema Validation
 
-Short description with diagrams where appropriate.
-Deployment settings / configuration (e.g. CodePipeline(s) / automated builds).
+The complete-data schema is registered in the AWS Schemas registry and used for validation. See the schema at [`app/event-schemas/`](app/event-schemas/).
 
-Infrastructure and deployment are managed via CDK. This template provides two types of CDK entry points: `cdk-stateless` and `cdk-stateful`.
+---
 
+## Submitting a Draft Event
 
-### Stateful
+To manually submit an RNAsum DRAFT event (e.g. to trigger a reanalysis), follow:
 
-- Queues
-- Buckets
-- Database
-- ...
+- [PM.RNS.1 — Manual Pipeline Execution](docs/operation/SOP/PM.RNS.1/PM.RNS.1-ManualPipelineExecution.md)
 
-### Stateless
-- Lambdas
-- StepFunctions
+See the [full SOPs index](docs/operation/SOP/README.md) for all operational procedures including deployment, parameter updates, and troubleshooting.
 
+---
 
-### CDK Commands
+## Infrastructure
 
-You can access CDK commands using the `pnpm` wrapper script.
+The service is deployed via AWS CDK. Resources are split into two stacks: stateful (data/config) and stateless (compute/events).
 
-- **`cdk-stateless`**: Used to deploy stacks containing stateless resources (e.g., AWS Lambda), which can be easily redeployed without side effects.
-- **`cdk-stateful`**: Used to deploy stacks containing stateful resources (e.g., AWS DynamoDB, AWS RDS), where redeployment may not be ideal due to potential side effects.
+All SSM parameters live under `/orcabus/workflows/rnasum/`.
+Event bus: `OrcaBusMain`
+Event source: `orcabus.rnasum`
 
-The type of stack to deploy is determined by the context set in the `./bin/deploy.ts` file. This ensures the correct stack is executed based on the provided context.
+### Stateful Resources
 
-For example:
+**AWS Schemas registry**
+- `complete-data-draft-schema.json` — used to validate DRAFT payloads before promotion to READY
 
-```sh
-# Deploy a stateless stack
-pnpm cdk-stateless <command>
+**SSM Parameters**
 
-# Deploy a stateful stack
-pnpm cdk-stateful <command>
-```
+| Parameter | Description |
+|---|---|
+| `workflowName` | `rnasum` |
+| `workflowVersion` | Current default version |
+| `payloadVersion` | Payload schema version |
+| `icav2ProjectId` | Default ICAv2 project ID per environment |
+| `logsPrefix` | Default S3 prefix for logs |
+| `outputPrefix` | Default S3 prefix for outputs |
+| `pipelineIdsByWorkflowVersion/<version>` | ICAv2 CWL pipeline ID for each workflow version |
+| `inputsByWorkflowVersion/<version>` | Default input overrides per workflow version |
+
+### Stateless Resources
+
+- **Lambda functions** (Python 3.14, ARM64) — one per task in the state machines; see [`app/lambdas/`](app/lambdas/)
+- **Step Functions state machines** — five ASL templates in [`app/step-functions-templates/`](app/step-functions-templates/)
+- **EventBridge rules** — route incoming `WorkflowRunStateChange` (DRAFT, READY, upstream SUCCEEDED) and `Icav2WesAnalysisStateChange` events to the appropriate state machines
 
 ### Stacks
 
-This CDK project manages multiple stacks. The root stack (the only one that does not include `DeploymentPipeline` in its stack ID) is deployed in the toolchain account and sets up a CodePipeline for cross-environment deployments to `beta`, `gamma`, and `prod`.
-
-To list all available stacks, run:
+The CDK project deploys a CodePipeline in the toolchain account that promotes changes to `beta`, `gamma`, and `prod`.
 
 ```sh
+# List stateful stacks
+pnpm cdk-stateful ls
+
+# List stateless stacks
 pnpm cdk-stateless ls
 ```
 
-Example output:
+---
 
-```sh
-OrcaBusStatelessServiceStack
-OrcaBusStatelessServiceStack/DeploymentPipeline/OrcaBusBeta/DeployStack (OrcaBusBeta-DeployStack)
-OrcaBusStatelessServiceStack/DeploymentPipeline/OrcaBusGamma/DeployStack (OrcaBusGamma-DeployStack)
-OrcaBusStatelessServiceStack/DeploymentPipeline/OrcaBusProd/DeployStack (OrcaBusProd-DeployStack)
-```
+## CI/CD and Release Management
 
+All changes merged to `main` are automatically built and deployed to `beta` and `gamma`. Promotion to `prod` requires manually enabling the CodePipeline transition in the AWS console.
 
-Development
---------------------------------------------------------------------------------
+---
 
-### Project Structure
+## Related Services
 
-The root of the project is an AWS CDK project where the main application logic lives inside the `./app` folder.
+| Role            | Service                                                                                                    |
+|-----------------|------------------------------------------------------------------------------------------------------------|
+| Upstream        | [Dragen WGTS RNA](https://github.com/OrcaBus/service-dragen-wgts-rna-pipeline-manager)                    |
+| Upstream        | [Sash](https://github.com/OrcaBus/service-sash-pipeline-manager)                                          |
+| Upstream        | [Arriba WGTS RNA](https://github.com/OrcaBus/service-arriba-wgts-rna-pipeline-manager)                    |
+| ICAv2 execution | [ICAv2 WES Manager](https://github.com/OrcaBus/service-icav2-wes-manager)                                 |
+| Workflow state  | [Workflow Manager](https://github.com/OrcaBus/service-workflow-manager)                                    |
 
-The project is organized into the following key directories:
+---
 
-- **`./app`**: Contains the main application logic. You can open the code editor directly in this folder, and the application should run independently.
+## SOPs
 
-- **`./bin/deploy.ts`**: Serves as the entry point of the application. It initializes two root stacks: `stateless` and `stateful`. You can remove one of these if your service does not require it.
+| SOP | Description |
+|---|---|
+| [PM.RNS.1](docs/operation/SOP/PM.RNS.1/PM.RNS.1-ManualPipelineExecution.md) | Manually kick off a reanalysis |
+| [PM.RNS.2](docs/operation/SOP/PM.RNS.2/PM.RNS.2-DeployingNewPipelineVersion.md) | Install and deploy a new pipeline version |
+| [PM.RNS.3](docs/operation/SOP/PM.RNS.3/PM.RNS.3-UpdatingSSMParameters.md) | Update SSM parameters |
+| [PM.RNS.4](docs/operation/SOP/PM.RNS.4/PM.RNS.4-RunningWorkflowValidations.md) | Run workflow validations |
+| [PM.RNS.5](docs/operation/SOP/PM.RNS.5/PM.RNS.5-Troubleshooting.md) | Troubleshoot common issues |
 
-- **`./infrastructure`**: Contains the infrastructure code for the project:
-  - **`./infrastructure/toolchain`**: Includes stacks for the stateless and stateful resources deployed in the toolchain account. These stacks primarily set up the CodePipeline for cross-environment deployments.
-  - **`./infrastructure/stage`**: Defines the stage stacks for different environments:
-    - **`./infrastructure/stage/config.ts`**: Contains environment-specific configuration files (e.g., `beta`, `gamma`, `prod`).
-    - **`./infrastructure/stage/stack.ts`**: The CDK stack entry point for provisioning resources required by the application in `./app`.
+---
 
-- **`.github/workflows/pr-tests.yml`**: Configures GitHub Actions to run tests for `make check` (linting and code style), tests defined in `./test`, and `make test` for the `./app` directory. Modify this file as needed to ensure the tests are properly configured for your environment.
+## Glossary & References
 
-- **`./test`**: Contains tests for CDK code compliance against `cdk-nag`. You should modify these test files to match the resources defined in the `./infrastructure` folder.
-
-
-### Setup
-
-#### Requirements
-
-```sh
-node --version
-v22.9.0
-
-# Update Corepack (if necessary, as per pnpm documentation)
-npm install --global corepack@latest
-
-# Enable Corepack to use pnpm
-corepack enable pnpm
-
-```
-
-#### Install Dependencies
-
-To install all required dependencies, run:
-
-```sh
-make install
-```
-
-#### First Steps
-
-Before using this template, search for all instances of `TODO:` comments in the codebase and update them as appropriate for your service. This includes replacing placeholder values (such as stack names).
-
-
-### Conventions
-
-### Linting & Formatting
-
-Automated checks are enforces via pre-commit hooks, ensuring only checked code is committed. For details consult the `.pre-commit-config.yaml` file.
-
-Manual, on-demand checking is also available via `make` targets (see below). For details consult the `Makefile` in the root of the project.
-
-
-To run linting and formatting checks on the root project, use:
-
-```sh
-make check
-```
-
-To automatically fix issues with ESLint and Prettier, run:
-
-```sh
-make fix
-```
-
-### Testing
-
-
-Unit tests are available for most of the business logic. Test code is hosted alongside business in `/tests/` directories.
-
-```sh
-make test
-```
-
-Glossary & References
---------------------------------------------------------------------------------
-
-For general terms and expressions used across OrcaBus services, please see the platform [documentation](https://github.com/OrcaBus/wiki/blob/main/orcabus-platform/README.md#glossary--references).
-
-Service specific terms:
-
-| Term      | Description                                      |
-|-----------|--------------------------------------------------|
-| Foo | ... |
-| Bar | ... |
+- Platform glossary: [OrcaBus wiki](https://github.com/OrcaBus/wiki/blob/main/orcabus-platform/README.md#glossary--references)
+- For development setup, build commands, project structure, and conventions see the [steering docs](.kiro/steering/).
